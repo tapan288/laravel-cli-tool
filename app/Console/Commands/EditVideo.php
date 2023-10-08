@@ -36,18 +36,40 @@ class EditVideo extends Command
             options: [$singleVideo, $folderOfVideos],
         );
 
-        $label = "Enter the path to the single video";
+        $label = $type == $singleVideo ? "Enter the path to the single video" : "Enter the path to the folder containing multiple videos";
 
-        $videos = collect(Storage::disk('common')->files())->filter(function ($video) {
+        $videos = $type == $singleVideo ? collect(Storage::disk('common')->files())->filter(function ($video) {
             return str_ends_with($video, '.mkv') && !str_contains($video, 'ALTERED');
-        })->toArray();
+        })->toArray() : [];
+
+        $directories = $type == $folderOfVideos ? collect(Storage::disk('common')->directories())->toArray() : [];
 
         $input = suggest(
             label: $label,
             required: true,
-            options: $videos,
+            options: $type == $singleVideo ? $videos : $directories,
         );
 
-        EditVideoJob::dispatch(config('auto-editor.video_path') . $input);
+        if ($type == $singleVideo) {
+            EditVideoJob::dispatch(config('auto-editor.video_path') . $input);
+
+            return;
+        }
+
+        $fullPath = config('auto-editor.video_path') . $input;
+
+        $videos = scandir($fullPath);
+
+        foreach ($videos as $video) {
+            if (!str_ends_with($video, '.mkv') || str_contains($video, 'ALTERED')) {
+                continue;
+            }
+
+            $this->info("Added $video to the queue for Processing");
+
+            EditVideoJob::dispatch($fullPath . '/' . $video);
+        }
+
+        return;
     }
 }
