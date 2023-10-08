@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
+use function Laravel\Prompts\{select, suggest};
 
 class EditVideo extends Command
 {
@@ -25,6 +27,30 @@ class EditVideo extends Command
      */
     public function handle()
     {
-        echo "Editing Video\n";
+        $singleVideo = "Single Video";
+        $folderOfVideos = "Folder of Videos";
+
+        $type = select(
+            label: 'Would you like to edit a single video or folder contaaining multiple videos?',
+            options: [$singleVideo, $folderOfVideos],
+        );
+
+        $label = "Enter the path to the single video";
+
+        $videos = collect(Storage::disk('common')->files())->filter(function ($video) {
+            return str_ends_with($video, '.mkv') && !str_contains($video, 'ALTERED');
+        })->toArray();
+
+        // $videos = collect($videos);
+
+        $input = suggest(
+            label: $label,
+            required: true,
+            options: $videos,
+        );
+
+        dd($input);
+
+
     }
 }
