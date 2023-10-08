@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\EditVideoJob;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use function Laravel\Prompts\{select, suggest};
@@ -31,7 +32,7 @@ class EditVideo extends Command
         $folderOfVideos = "Folder of Videos";
 
         $type = select(
-            label: 'Would you like to edit a single video or folder contaaining multiple videos?',
+            label: 'Would you like to edit a single video or folder containing multiple videos?',
             options: [$singleVideo, $folderOfVideos],
         );
 
@@ -41,16 +42,12 @@ class EditVideo extends Command
             return str_ends_with($video, '.mkv') && !str_contains($video, 'ALTERED');
         })->toArray();
 
-        // $videos = collect($videos);
-
         $input = suggest(
             label: $label,
             required: true,
             options: $videos,
         );
 
-        dd($input);
-
-
+        EditVideoJob::dispatch(config('auto-editor.video_path') . $input);
     }
 }
